@@ -1,9 +1,11 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {observable, action, extendObservable} from 'mobx';
+import {observable, action, extendObservable, useStrict, isObservableArray} from 'mobx';
 import {observer} from 'mobx-react';
 import DevTools from 'mobx-react-devtools';
 import 'whatwg-fetch';
+useStrict(true);
+
 type UnionType = {$type: "UnionType", name: string, alternatives: Type[]};
 type ObjectType = {$type: "ObjectType", name: string, attributes: Attribute[]};
 type TypeDefinition = ObjectType | UnionType;
@@ -119,7 +121,7 @@ function isInstance(obj: any, t: Type): boolean {
     if (typeof t === "string") return isInstance(obj, resolve(t));
     if (t.$type === "ObjectType") return obj.$type === t.name;
     if (t.$type === "UnionType") return t.alternatives.some(type => isInstance(obj, type));
-    if (t.$type === "array") return obj && typeof obj.slice === "function" && Array.isArray(obj.slice()) && obj.every((ele:any) => isInstance(ele, t.$type));
+    if (t.$type === "array") return (Array.isArray(obj)|| isObservableArray(obj)) && obj.every((ele:any) => isInstance(ele, t.$type));
     throw "unknown";
 }
 @observer
@@ -131,7 +133,7 @@ class ObjectEditor extends React.Component<{type: Type, value: Accessor<any>}, {
             return <StringEditor value={value} />;
         }
         if (type === NOTSET) {
-            return <i>undefined</i>;
+            return <i>{NOTSET}</i>;
         }
         else if (typeof type === 'string') {
             return <ObjectEditor type={resolve(type)} value={value} />
@@ -156,13 +158,16 @@ class StringEditor extends React.Component<{value: Accessor<string>}, {}> {
 }
 @observer
 class ArrayEditor extends React.Component<{type: {$type: "array", of: Type}, value:  Accessor<any[]>}, {}> {
+    add = action("ArrayEditor.add", () => this.props.value.get().push(instantiate(this.props.type.of)));
+    remove = action("ArrayEditor.remove", () => this.props.value.get().pop());
+
     render() {
         const {type, value} = this.props;
         console.log("render");
         return (
             <div style={indent}>
-            <button onClick={() => value.get().push(instantiate(type.of))}>+</button>
-                <button onClick={() => value.get().pop()}>-</button>
+            <button onClick={this.add}>+</button>
+                <button onClick={this.remove}>-</button>
                 {value.get().map((_,i) => <ObjectEditor key={i} type={type.of} value={{get: () => value.get()[i], set: v => value.get()[i] = v}} />)}
             </div>
         );
@@ -173,9 +178,13 @@ class UnionEditor extends React.Component<{type: UnionType, value: Accessor<any>
     @observable currentlySelected = 0;
     constructor(props: {type:UnionType, value: any}) {
         super(props);
-        const inx = props.type.alternatives.findIndex(type => isInstance(props.value.get(), type));
+        this.findCurrent();
+    }
+    @action
+    findCurrent() {
+        const inx = this.props.type.alternatives.findIndex(type => isInstance(this.props.value.get(), type));
         if(inx === -1) {
-            console.error(props.value.get(), "not instanceof", typeToString(props.type));
+            console.error(this.props.value.get(), "not instanceof", typeToString(this.props.type));
             throw Error("above");
         }
         this.currentlySelected = inx;
@@ -219,6 +228,9 @@ class ObjectTypeEditor extends React.Component<{type: ObjectType, value: Accesso
 }
 let value: any;
 
+const DisplayJSON = observer((props: {value: Accessor<any>}) =>
+    <div style={{marginLeft: "auto", border: "1px solid black"}}><pre>{JSON.stringify(props.value.get(), null, 3)}</pre></div>
+);
 @observer
 class GUI extends React.Component<{type: Type, value: Accessor<any>}, {}> {
     render() {
@@ -226,7 +238,8 @@ class GUI extends React.Component<{type: Type, value: Accessor<any>}, {}> {
         return (
             <div style={{display: "flex"}}>
                 <ObjectEditor type={type} value={value} />
-                <div style={{marginLeft: "auto", border: "1px solid black"}}><pre>{JSON.stringify(value.get(), null, 3)}</pre></div>
+                <DisplayJSON value={value} />
+                <DevTools />
             </div>
         )
     }
