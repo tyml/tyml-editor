@@ -19,8 +19,6 @@ const indent: React.CSSProperties = {
     paddingLeft: "1em"
 }
 
-let value: any;
-
 const DisplayJSON = observer((props: {value: Accessor<any>}) =>
     <div style={{marginLeft: "auto", border: "1px solid black"}}>
         <pre>{JSON.stringify(props.value.get(), null, 3)}</pre>
@@ -45,7 +43,8 @@ class GUI extends React.Component<{type: Type, value: Accessor<any>}, {}> {
     }
 }
 fetch("data/fstab.tyml.json").then(x => x.json()).then(val => {
-    value = observable(val);
-    Object.assign(window, {value});
-    ReactDOM.render(<GUI type={value.$type} value={{get: () => value, set: v => value = v}} />, document.getElementById('root'))
+    const value: any = observable(val);
+    const w = window as any;
+    w.value = value;
+    ReactDOM.render(<GUI type={value.$type} value={{get: () => w.value, set: x => w.value = x}} />, document.getElementById('root'))
 });
