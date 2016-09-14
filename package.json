@@ -23,16 +23,30 @@
   },
   "homepage": "http://mobxjs.github.com/mobx",
   "devDependencies": {
+    "css-loader": "^0.25.0",
+    "extract-text-webpack-plugin": "^1.0.1",
+    "node-sass": "^3.10.0",
+    "postcss-loader": "^0.13.0",
+    "react-addons-css-transition-group": "^0.14.8",
+    "sass-loader": "^4.0.2",
+    "style-loader": "^0.13.1",
     "ts-loader": "^0.8.1",
-    "typescript": "^2.0.2",
-    "webpack": "^1.9.6",
+    "typescript": "^2.1.0-dev.20160914",
+    "webpack": "^1.13.2",
     "webpack-dev-server": "^1.8.2"
   },
   "dependencies": {
+    "@types/tether": "^1.1.26",
+    "bootstrap": "^4.0.0-alpha.4",
+    "immutability-helper": "^2.0.0",
     "mobx": "^2.3.2",
     "mobx-react": "^3.3.1",
     "mobx-react-devtools": "^4.2.0",
+    "normalize.css": "^4.2.0",
+    "query-string": "^4.2.3",
     "react": "^15.1.0",
-    "react-dom": "^15.1.0"
+    "react-dom": "^15.1.0",
+    "react-toolbox": "^1.2.1",
+    "tether": "^1.3.7"
   }
 }
