@@ -1,0 +1,28 @@
+{
+  "$type": "FStab",
+  "entries": [
+    {
+      "source": {
+        "$type": "BlockDevice",
+        "identifier": {"$type": "Path", "Path": "/dev/sda1"},
+        "filesystem": "btrfs"
+      },
+      "mountpoint": "/"
+    },
+    {
+      "source": {
+        "$type": "BlockDevice",
+        "identifier": {"$type": "UUID", "UUID": "8f3ba6f4-5c70-46ec-83af-0d5434953e5f"},
+        "filesystem": "ext4"
+      },
+      "mountpoint": "/home"
+    },
+    {
+      "source": {
+        "$type": "tmpfs",
+        "options": ["noatime", "nodev", "nosuid", {"$type": "size", "size": "16G"}]
+      },
+      "mountpoint": "/tmp"
+    }
+  ]
+}
