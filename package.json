@@ -36,6 +36,7 @@
     "webpack-dev-server": "^1.8.2"
   },
   "dependencies": {
+    "@types/query-string": "^3.0.27",
     "@types/tether": "^1.1.26",
     "bootstrap": "^4.0.0-alpha.4",
     "immutability-helper": "^2.0.0",
@@ -44,6 +45,7 @@
     "mobx-react-devtools": "^4.2.0",
     "normalize.css": "^4.2.0",
     "query-string": "^4.2.3",
+    "rc-color-picker": "^1.1.0",
     "react": "^15.1.0",
     "react-dom": "^15.1.0",
     "react-toolbox": "^1.2.1",

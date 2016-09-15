@@ -1,6 +1,6 @@
 import * as React from 'react';
 import * as ReactDOM from 'react-dom';
-import {observable, action, extendObservable, useStrict, isObservableArray} from 'mobx';
+import {autorun, observable, action, extendObservable, useStrict, isObservableArray, asMap} from 'mobx';
 useStrict(true);
 import {observer} from 'mobx-react';
 import DevTools from 'mobx-react-devtools';
@@ -10,10 +10,11 @@ import { Button } from 'react-toolbox/lib/button';
 import * as RT from 'react-toolbox';
 import { Table } from 'react-toolbox/lib/table';
 import 'react-toolbox/lib/commons.scss';
+import 'rc-color-picker/assets/index.css';
 
-import {Type, typeToString} from './types';
+import {Type, typeToString, instantiate} from './types';
 import {Accessor, AutoEditor} from './editors';
-
+import {parse, stringify} from 'query-string';
 
 const indent: React.CSSProperties = {
     paddingLeft: "1em"
@@ -42,9 +43,24 @@ class GUI extends React.Component<{type: Type, value: Accessor<any>}, {}> {
         )
     }
 }
-fetch("data/fstab.tyml.json").then(x => x.json()).then(val => {
+const query = observable(asMap<string>(parse(location.search)));
+autorun(() =>
+    window.history.replaceState(null, "", "?"+stringify(query.toJS()))
+);
+if(query.has("source")) {
+    fetch(query.get("source")).then(x => x.json()).then(initWithValue);
+} else if(query.has("type")) {
+    const val = instantiate(query.get("type"));
+    initWithValue(val);
+} else {
+    action(() => query.set("source", "data/fstab.tyml.json"))();
+    fetch(query.get("source")).then(x => x.json()).then(initWithValue);
+}
+    
+
+function initWithValue(val: any) {
     const value: any = observable(val);
     const w = window as any;
     w.value = value;
     ReactDOM.render(<GUI type={value.$type} value={{get: () => w.value, set: x => w.value = x}} />, document.getElementById('root'))
-});
+}

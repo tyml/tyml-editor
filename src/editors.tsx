@@ -10,6 +10,8 @@ import { Button } from 'react-toolbox/lib/button';
 import * as RT from 'react-toolbox';
 import { Table } from 'react-toolbox/lib/table';
 import 'react-toolbox/lib/commons.scss';
+
+import * as ColorPicker from 'rc-color-picker';
 import {ResolvedType, Type, ArrayType, ObjectType, typeToString, instantiate, UnionType, isInstance, STRING, NOTSET, resolve} from './types';
 import * as util from './util';
 
@@ -44,7 +46,7 @@ function ObjectAccessor(acc: Accessor<any>, attr: string): Accessor<any> {
     return {get: () => obj[attr], set: x => obj[attr] = x};
 }
 
-const flexLabel = {flex:"1 1 fit-content", alignSelf:"center", marginRight: "1em"};
+const flexLabel = {flex:"1 1 fit-content", alignSelf:"center", marginRight: "1em", paddingTop:"1ex"};
 
 @observer
 class StringEditor extends React.Component<{editable: STRING, value: Accessor<string>, label?: string}, {}> {
@@ -53,7 +55,12 @@ class StringEditor extends React.Component<{editable: STRING, value: Accessor<st
 
     onChange = action("StringEditor.onChange", (text: string) => this.props.value.set(text));
     render() {
-        return <RT.Input type="text" label={this.props.label} value={this.props.value.get()} onChange={this.onChange} />;
+        const str = this.props.value.get();
+        const regex = this.props.editable.regex;
+        let error: string | undefined = undefined;
+        if(regex && !regex.test(str)) error = "Invalid "+this.props.label+": Regex does not match.";
+        return <RT.Input type="text" label={this.props.label} error={error}
+            value={str} onChange={this.onChange} />;
     }
 }
 @observer
@@ -123,11 +130,103 @@ class ArrayEditor extends React.Component<{editable: ArrayType, value:  Accessor
                 {value.get().map((e,i) =>
                     <AutoEditor key={util.getUniqueKeyFor(e, i)} editable={{$type: "ArrayIndex", index: i, array: editable}} value={value} />
                 )}
-                <Button onClick={this.add} label="+" raised primary />
+                <Button style={{marginTop: "1em"}} onClick={this.add} icon="add" label={`Add ${typeToString(editable.of)}`} raised primary />
             </div>
         );
     }
 }
+
+@observer
+class DateEditor extends React.Component<{editable: ObjectType, value: Accessor<{value: string}>}, {}> {
+    static kind = EditorKind.Inline;
+    static canEdit = (type: Editable) => type.$type === "ObjectType" && type.name === "Date" && 3;
+    handleChange = action("DateEditor.handleChange", (v: Date) => {
+        const d = new Date(v.getTime() - v.getTimezoneOffset()*60*1000).toISOString();
+        this.props.value.get().value = d.substring(0, 10);
+    });
+    render() {
+        let date = this.props.value.get().value;
+        if(date) date = date + "T00:00:00.000Z";
+        return <RT.DatePicker label='Date' onChange={this.handleChange} value={date?new Date(date): undefined} />;
+    }
+}
+@observer
+class DateTimeEditor extends React.Component<{editable: ObjectType, value: Accessor<{value: string}>}, {}> {
+    static kind = EditorKind.Inline;
+    static canEdit = (type: Editable) => type.$type === "ObjectType" && type.name === "DateTime" && 3;
+    handleDateChange = action("DateTimeEditor.handleDateChange", (v: Date) => {
+        const target = this.props.value.get();
+        const date = target.value ? new Date(target.value): new Date(Date.UTC(2016, 1, 1));
+        date.setFullYear(v.getFullYear());
+        date.setMonth(v.getMonth());
+        date.setDate(v.getDate());
+        target.value = date.toISOString();
+    });
+    handleTimeChange = action("DateTimeEditor.handleTimeChange", (v: Date) => {
+        const target = this.props.value.get();
+        const date = target.value ? new Date(target.value): new Date(Date.UTC(2016, 1, 1));
+        date.setHours(v.getHours());
+        date.setMinutes(v.getMinutes());
+        target.value = date.toISOString();
+    });
+    render() {
+        let date = this.props.value.get().value;
+        return <div style={{display:"flex"}}>
+            <RT.DatePicker style={{flex: 1}} label='Date' onChange={this.handleDateChange} value={date?new Date(date): undefined} />
+            <div style={{flex: 1}}><RT.TimePicker label='Time' onChange={this.handleTimeChange} value={date?new Date(date): undefined} /></div>
+        </div>
+    }
+}
+@observer
+class ColorEditor extends React.Component<{editable: ObjectType, value: Accessor<{value: string}>}, {}> {
+    static kind = EditorKind.Inline;
+    static canEdit = (type: Editable) => type.$type === "ObjectType" && type.name === "Color" && 3;
+    handleChange = action("ColorPicker.handleChange", (v: any) => {
+        this.props.value.get().value = v.color;
+    });
+    render() {
+        return <ColorPicker animation="slide-up" color={this.props.value.get().value} onChange={this.handleChange} />;
+    }
+}
+@observer
+class TimeEditor extends React.Component<{editable: ObjectType, value: Accessor<{value: string}>}, {}> {
+    static kind = EditorKind.Inline;
+    static canEdit = (type: Editable) => type.$type === "ObjectType" && type.name === "Time" && 3;
+    handleChange = action("TimeEditor.handleChange", (v: Date) => {
+        const d = new Date(v.getTime() - v.getTimezoneOffset()*60*1000).toISOString();
+        this.props.value.get().value = d.substring(11, 16);
+    });
+    render() {
+        let time = this.props.value.get().value;
+        let date: Date | undefined;
+        if(time) {
+            date = new Date();
+            date.setHours(+time.substr(0, 2));
+            date.setMinutes(+time.substr(3, 5));
+        }
+        return <RT.TimePicker label='Time' onChange={this.handleChange} value={date} />;
+    }
+}
+@observer
+class GuidEditor extends React.Component<{editable: ObjectType, value: Accessor<{value: string}>}, {}> {
+    static kind = EditorKind.Inline;
+    static canEdit = (type: Editable) => type.$type === "ObjectType" && type.name === "GUID" && 3;
+    handleChange = action("GuidEditor.handleChange", (v: any) => {
+        this.props.value.get().value = v;
+    });
+    render() {
+        const s = this.props.editable.attributes[0].type as STRING;
+        return (
+            <div style={{display:"flex"}}>
+                <Button style={{flex:"1 1 fit-content", alignSelf:"center", marginRight: "1em"}} onClick={() => this.handleChange(util.generateGUID())} label={`Generate`} raised primary />
+                <div style={{flex: "1"}}>
+                    <StringEditor editable={s} value={ObjectAccessor(this.props.value, "value")} label="GUID" />
+                </div>
+            </div>
+        );
+    }
+}
+
 
 abstract class UnionEditor extends React.Component<{editable: UnionType, value: Accessor<any>}, {}> {
     @observable currentlySelected = 0;
@@ -244,7 +343,7 @@ class SimpleObjectInlineEditor extends React.Component<{editable: ObjectType, va
         const {name, type} = editable.attributes[0];
         const typeAsString = type as STRING; //don't move, VSCode highlighting bug
         return (
-            <StringEditor editable={typeAsString} value={ObjectAccessor(value, name)} label={"Enter "+name} />
+            <StringEditor editable={typeAsString} value={ObjectAccessor(value, name)} label={name} />
         )
     }
 }
@@ -264,7 +363,8 @@ class EditorError extends React.Component<{editable: Editable, value: Accessor<a
 
 const knownEditors: Editor[] = [
   ObjectEditor, SimpleObjectInlineEditor, UnionBlockEditor, UnionInlineEditor,
-  ArrayEditor, StringEditor, UndefinedEditor, EditorError, ArrayElementEditor, ArrayElementInlineEditor
+  ArrayEditor, StringEditor, UndefinedEditor, EditorError, ArrayElementEditor, ArrayElementInlineEditor,
+  DateEditor, DateTimeEditor, TimeEditor, ColorEditor, GuidEditor
 ]
 
 function chooseEditor(type: Editable | Type, kind?: EditorKind): Editor {

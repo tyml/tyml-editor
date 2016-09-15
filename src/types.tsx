@@ -1,6 +1,6 @@
 import {isObservableArray} from 'mobx';
 
-export type STRING = {$type: "string"};
+export type STRING = {$type: "string", regex?: RegExp};
 export const STRING: STRING = {$type: "string"};
 export type NOTSET = {$type: "not set"};
 export const NOTSET: NOTSET = {$type: "not set"};
@@ -12,7 +12,7 @@ export type TypeDefinition = ObjectType | UnionType;
 export type ResolvedType = TypeDefinition | ArrayType | STRING | NOTSET;
 export type Type = string | ResolvedType;
 
-const types: TypeDefinition[] = [
+const fstabTypes: TypeDefinition[] = [
     {
         $type: "ObjectType",
         name: "FStab", 
@@ -43,7 +43,7 @@ const types: TypeDefinition[] = [
             {name: "identifier", type: "BlockDeviceIdentifier"},
             {name: "filesystem", type: STRING},
             {name: "options", type: {$type: "UnionType", name: "MaybeOptions", alternatives: [
-                {$type: "array", of: STRING}, NOTSET
+                NOTSET, {$type: "array", of: STRING} 
             ]}}
         ]
     },
@@ -82,6 +82,64 @@ const types: TypeDefinition[] = [
     }
 ];
 
+const editorsTestTypes: TypeDefinition[] = [
+    {
+        $type: "ObjectType",
+        name: "NiceEditorsTest",
+        attributes: [
+            {name: "birthday", type: "Date"},
+            {name: "alarmTime", type: "Time"},
+            {name: "meetingDateTime", type: "DateTime"},
+            {name: "favouriteColor", type: "Color"},
+            {name: "homepage", type: "Url"},
+            {name: "IPv4", type: "IPv4"},
+            {name: "GUID", type: "GUID"},
+            {name: "emailAddress", type: "email"}
+        ]
+    },
+    {
+        $type: "ObjectType",
+        name: "Date",
+        attributes: [{name: "value", type: STRING}]
+    },
+    {
+        $type: "ObjectType",
+        name: "Time",
+        attributes: [{name: "value", type: STRING}]
+    },
+    {
+        $type: "ObjectType",
+        name: "DateTime",
+        attributes: [{name: "value", type: STRING}]
+    },
+    {
+        $type: "ObjectType",
+        name: "IPv4",
+        attributes: [{name: "value", type: {$type: "string", regex: /^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/}}]
+    },
+    {
+        $type: "ObjectType",
+        name: "Url",
+        attributes: [{name: "value", type: {$type: "string", regex: /^(https?|ftp):\/\/[^\s/$.?#].[^\s]*$/i}}]
+    },
+    {
+        $type: "ObjectType",
+        name: "GUID",
+        attributes: [{name: "value", type: {$type: "string", regex: /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/}}]
+    },
+    {
+        $type: "ObjectType",
+        name: "Color",
+        attributes: [{name: "value", type: STRING}]
+    },
+    {
+        $type: "ObjectType",
+        name: "email",
+        attributes: [{name: "value", type: {$type: "string", regex: /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$/i}}]
+    }
+]
+
+const types = [...fstabTypes, ...editorsTestTypes];
 export function resolve(t: Type): ResolvedType {
     if(typeof t !== "string") return t;
     const found = types.find(e => e.name === t);
@@ -107,7 +165,7 @@ export function instantiate(t: Type): any {
         return obj;
     }
     case "UnionType": return instantiate(t.alternatives[0]);
-    case "array": return [];
+    case "array": return [instantiate(t.of)];
     case "string": return "";
     case "not set": return undefined;
   }

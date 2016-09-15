@@ -26,15 +26,16 @@ module.exports = {
         include: path.join(__dirname, 'src')
       },
       {
-        test: /(\.scss|\.css)$/,
+        test: /(\.scss)$/,
         loader: ExtractTextPlugin.extract('style', 'css?sourceMap&modules&importLoaders=1&localIdentName=[name]__[local]___[hash:base64:5]!postcss!sass')
-      }
+      },
+      { test: /\.css$/, loader: "style-loader!css-loader" },
     ]
   },
   postcss: [autoprefixer],
   sassLoader: {
-    //data: '@import "theme/_config.scss";',
-    includePaths: [path.resolve(__dirname, './src/app')]
+    data: '@import "theme/_config.scss";',
+    includePaths: [path.resolve(__dirname, './src')]
   },
   toolbox: {                                                                                                                                                                               
     theme: path.join(__dirname, '../client/toolbox-theme.scss')                                                                                                                            
